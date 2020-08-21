@@ -12,6 +12,7 @@ POP = 0b01000110
 CALL = 0b01010000
 RET = 0b00010001
 CMP = 0b10100111
+JMP = 0b01010100
 
 
 class CPU:
@@ -38,11 +39,12 @@ class CPU:
         self.branchtable[CALL] = self.handle_CALL
         self.branchtable[RET] = self.handle_RET
         self.branchtable[CMP] = self.handle_CMP
+        self.branchtable[JMP] = self.handle_JMP
 
-    def ram_read(self, mar):  # accept Memory Address Register (MAR)
+    def ram_read(self, mar):
         return self.ram[mar]
 
-    def ram_write(self, mar, mdr):  # accept Memory Data Register (MDR)
+    def ram_write(self, mar, mdr):
         self.ram[mar] = mdr
 
     def load(self, file_name):
@@ -108,6 +110,11 @@ class CPU:
         operand_a = self.ram_read(self.pc + 1)
         operand_b = self.ram_read(self.pc + 2)
         self.alu("CMP", operand_a, operand_b)
+
+    def handle_JMP(self):
+        reg = self.ram_read(self.pc + 1)
+        address = self.reg[reg]
+        self.pc = address
 
     def handle_PUSH(self):
         # decrement the stack pointer
@@ -176,7 +183,7 @@ class CPU:
     def run(self):
         """Run the CPU."""
         while self.running:
-            ir = self.ram_read(self.pc)
+            ir = self.ram_read(self.pc)  # Instruction Register
             value = ir
             op_count = value >> 6
             ir_length = 1 + op_count
@@ -184,5 +191,5 @@ class CPU:
             if ir == 0 or None:
                 print(f"Unknown Instruction: {ir}")
                 sys.exit()
-            if ir != CALL and ir != RET:
+            if ir != CALL and ir != RET and ir != JMP:
                 self.pc += ir_length
