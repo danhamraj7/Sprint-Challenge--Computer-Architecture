@@ -13,6 +13,7 @@ CALL = 0b01010000
 RET = 0b00010001
 CMP = 0b10100111
 JMP = 0b01010100
+JEQ = 0b01010101
 
 
 class CPU:
@@ -40,6 +41,7 @@ class CPU:
         self.branchtable[RET] = self.handle_RET
         self.branchtable[CMP] = self.handle_CMP
         self.branchtable[JMP] = self.handle_JMP
+        self.branchtable[JEQ] = self.handle_JEQ
 
     def ram_read(self, mar):
         return self.ram[mar]
@@ -111,10 +113,21 @@ class CPU:
         operand_b = self.ram_read(self.pc + 2)
         self.alu("CMP", operand_a, operand_b)
 
+    # Jump to the address stored in the given register.
+    # Set the PC to the address stored in the given register.
     def handle_JMP(self):
+        # get a value from the given register
+        register = self.ram_read(self.pc + 1)
+        address = self.reg[register]
+        self.pc = address
+
+    def handle_JEQ(self):
         reg = self.ram_read(self.pc + 1)
         address = self.reg[reg]
-        self.pc = address
+        if self.fl == 0b00000001:
+            self.pc = address
+        else:
+            self.pc += 2
 
     def handle_PUSH(self):
         # decrement the stack pointer
@@ -140,9 +153,9 @@ class CPU:
 
     def handle_CALL(self):
         # get the register number
-        reg = self.ram_read(self.pc + 1)
+        register = self.ram_read(self.pc + 1)
         # get the address to jump to, from the register
-        address = self.reg[reg]
+        address = self.reg[register]
         # push command after CALL onto the stack
         return_address = self.pc + 2
         # decrement stack pointer
@@ -183,7 +196,7 @@ class CPU:
     def run(self):
         """Run the CPU."""
         while self.running:
-            ir = self.ram_read(self.pc)  # Instruction Register
+            ir = self.ram_read(self.pc)
             value = ir
             op_count = value >> 6
             ir_length = 1 + op_count
@@ -191,5 +204,5 @@ class CPU:
             if ir == 0 or None:
                 print(f"Unknown Instruction: {ir}")
                 sys.exit()
-            if ir != CALL and ir != RET and ir != JMP:
+            if ir != CALL and ir != RET and ir != JMP and ir != JEQ:
                 self.pc += ir_length
