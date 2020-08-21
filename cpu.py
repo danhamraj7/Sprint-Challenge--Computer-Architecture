@@ -11,6 +11,7 @@ PUSH = 0b01000101
 POP = 0b01000110
 CALL = 0b01010000
 RET = 0b00010001
+CMP = 0b10100111
 
 
 class CPU:
@@ -23,6 +24,8 @@ class CPU:
         self.reg[7] = 0xF4
         self.pc = 0
         self.running = True
+        self.fl = 0b00000000
+
         # set up branch table
         self.branchtable = {}
         self.branchtable[HLT] = self.handle_HLT
@@ -34,6 +37,7 @@ class CPU:
         self.branchtable[POP] = self.handle_POP
         self.branchtable[CALL] = self.handle_CALL
         self.branchtable[RET] = self.handle_RET
+        self.branchtable[CMP] = self.handle_CMP
 
     def ram_read(self, mar):  # accept Memory Address Register (MAR)
         return self.ram[mar]
@@ -67,6 +71,14 @@ class CPU:
         # elif op == "SUB": etc
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+
+        elif op == "CMP":
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.fl = 0b00000001
+            if self.reg[reg_a] > self.reg[reg_b]:
+                self.fl = 0b00000010
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.fl = 0b00000100
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -91,6 +103,11 @@ class CPU:
         operand_a = self.ram_read(self.pc + 1)
         operand_b = self.ram_read(self.pc + 2)
         self.alu("MUL", operand_a, operand_b)
+
+    def handle_CMP(self):
+        operand_a = self.ram_read(self.pc + 1)
+        operand_b = self.ram_read(self.pc + 2)
+        self.alu("CMP", operand_a, operand_b)
 
     def handle_PUSH(self):
         # decrement the stack pointer
